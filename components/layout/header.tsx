@@ -1,6 +1,7 @@
 import { Brand } from "@/components/layout/brand";
 import { NotificationsButton } from "@/components/actions/notifications-button";
 import { QuickCreateButton } from "@/components/actions/quick-create-button";
+import { InstallAppButton } from "@/components/pwa/install-app-button";
 
 export function Header({ title, subtitle }: { title: string; subtitle: string }) {
   return (
@@ -12,6 +13,7 @@ export function Header({ title, subtitle }: { title: string; subtitle: string })
           <p className="truncate text-sm text-muted">{subtitle}</p>
         </div>
         <div className="flex items-center gap-2">
+          <InstallAppButton compact />
           <NotificationsButton />
           <QuickCreateButton />
         </div>

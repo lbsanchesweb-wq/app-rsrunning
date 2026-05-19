@@ -1,7 +1,7 @@
 import type { Metric, Payment, Student, TrainingSession } from "@/lib/types";
 
 export const coachMetrics: Metric[] = [
-  { label: "Alunos ativos", value: "42", helper: "+8% no mês" },
+  { label: "Semanas publicadas", value: "18", helper: "alunos ativos" },
   { label: "Treinos concluídos", value: "318", helper: "semana atual" },
   { label: "Receita prevista", value: "R$ 8.940", helper: "maio" },
 ];
@@ -9,7 +9,7 @@ export const coachMetrics: Metric[] = [
 export const studentMetrics: Metric[] = [
   { label: "Semana", value: "32 km", helper: "volume planejado" },
   { label: "Conclusão", value: "86%", helper: "últimos 30 dias" },
-  { label: "Próxima prova", value: "21K", helper: "em 6 semanas" },
+  { label: "Cronograma", value: "4/4", helper: "treinos da semana" },
 ];
 
 export const students: Student[] = [

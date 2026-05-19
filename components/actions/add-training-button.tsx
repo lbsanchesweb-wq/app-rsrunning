@@ -56,7 +56,6 @@ export function AddTrainingButton({ compact = false }: { compact?: boolean }) {
               <option>Tiros</option>
               <option>Longão</option>
               <option>Rampa</option>
-              <option>Prova</option>
             </select>
           </label>
           <div className="grid grid-cols-2 gap-3">

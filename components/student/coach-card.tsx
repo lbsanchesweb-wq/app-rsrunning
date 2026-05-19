@@ -14,7 +14,7 @@ export function CoachCard() {
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className="truncate font-semibold text-white">RE Running Professor</p>
+            <p className="truncate font-semibold text-white">RS Running Professor</p>
             <Badge>Online</Badge>
           </div>
           <p className="mt-1 text-sm text-muted">Corrida de rua / Meia maratona</p>

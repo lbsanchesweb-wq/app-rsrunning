@@ -17,10 +17,10 @@ const sidebarItems = {
   ],
   student: [
     { href: "/student", label: "Início", icon: Home },
-    { href: "/student#semana", label: "Semana", icon: CalendarDays },
-    { href: "/student#evolucao", label: "Evolução", icon: TrendingUp },
-    { href: "/student#mensalidade", label: "Mensalidade", icon: CreditCard },
-    { href: "/profile", label: "Perfil", icon: UserRound },
+    { href: "/student/semana", label: "Semana", icon: CalendarDays },
+    { href: "/student/evolucao", label: "Evolução", icon: TrendingUp },
+    { href: "/student/mensalidade", label: "Mensalidade", icon: CreditCard },
+    { href: "/student/profile", label: "Perfil", icon: UserRound },
   ],
 };
 

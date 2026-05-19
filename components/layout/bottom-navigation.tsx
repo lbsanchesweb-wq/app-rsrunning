@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, CalendarDays, CreditCard, Home, TrendingUp, UserRound, UsersRound } from "lucide-react";
+import { CalendarDays, CreditCard, Home, TrendingUp, UserRound, UsersRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type NavigationMode = "coach" | "student";
@@ -17,10 +17,10 @@ const navigation = {
   ],
   student: [
     { href: "/student", label: "Início", icon: Home },
-    { href: "/student#semana", label: "Semana", icon: CalendarDays },
-    { href: "/student#evolucao", label: "Evolução", icon: TrendingUp },
-    { href: "/student#mensalidade", label: "Mensalidade", icon: CreditCard },
-    { href: "/profile", label: "Perfil", icon: UserRound },
+    { href: "/student/semana", label: "Semana", icon: CalendarDays },
+    { href: "/student/evolucao", label: "Evolução", icon: TrendingUp },
+    { href: "/student/mensalidade", label: "Mensalidade", icon: CreditCard },
+    { href: "/student/profile", label: "Perfil", icon: UserRound },
   ],
 };
 
@@ -33,9 +33,7 @@ export function BottomNavigation({ mode = "coach" }: { mode?: NavigationMode }) 
       <div className="mx-auto grid max-w-md grid-cols-5 gap-1 rounded-[1.75rem] border border-white/[0.08] bg-card/90 p-1.5 shadow-card backdrop-blur-xl">
         {items.map((item) => {
           const Icon = item.icon;
-          const active =
-            pathname === item.href ||
-            (mode === "student" && item.href === "/student" && pathname === "/student");
+          const active = pathname === item.href;
 
           return (
             <Link

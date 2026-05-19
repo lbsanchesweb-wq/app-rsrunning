@@ -1,16 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, CalendarClock, CheckCircle2, CreditCard, Route, UserX } from "lucide-react";
+import { Bell, CheckCircle2, CreditCard, Route, Send, UserX } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { RaceDetailsSheet } from "@/components/dashboard/race-card";
 import { StudentDetailsSheet } from "@/components/student/student-card";
 import { ActionSheet } from "@/components/ui/action-sheet";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { payments, students, weeklySessions } from "@/lib/data";
 
-type NotificationKind = "student" | "finance" | "training" | "race";
+type NotificationKind = "student" | "finance" | "training" | "schedule";
 
 const notifications = [
   {
@@ -32,10 +31,10 @@ const notifications = [
     description: "Marina Costa registrou sensação leve.",
   },
   {
-    kind: "race" as const,
-    icon: CalendarClock,
-    title: "Prova próxima",
-    description: "SP City 21K entra na fase de ajuste final.",
+    kind: "schedule" as const,
+    icon: Send,
+    title: "Semana em rascunho",
+    description: "Publique o cronograma de Rafael Lima.",
   },
 ];
 
@@ -44,7 +43,6 @@ export function NotificationsButton() {
   const [active, setActive] = useState<NotificationKind | null>(null);
   const router = useRouter();
   const targetStudent = students[1];
-  const raceStudent = students[0];
   const training = weeklySessions[0];
   const overduePayments = payments.filter((payment) => payment.status === "overdue");
 
@@ -53,6 +51,11 @@ export function NotificationsButton() {
 
     if (kind === "finance") {
       router.push("/financial?status=overdue");
+      return;
+    }
+
+    if (kind === "schedule") {
+      router.push("/training");
       return;
     }
 
@@ -104,11 +107,6 @@ export function NotificationsButton() {
         student={targetStudent}
         open={active === "student"}
         onOpenChange={(nextOpen) => setActive(nextOpen ? "student" : null)}
-      />
-      <RaceDetailsSheet
-        student={raceStudent}
-        open={active === "race"}
-        onOpenChange={(nextOpen) => setActive(nextOpen ? "race" : null)}
       />
       <ActionSheet
         open={active === "training"}

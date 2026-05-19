@@ -5,7 +5,7 @@ import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 
-export function ProfileSaveButton() {
+export function ProfileSaveButton({ label = "Salvar perfil" }: { label?: string }) {
   const [saving, setSaving] = useState(false);
   const { showToast } = useToast();
 
@@ -20,7 +20,7 @@ export function ProfileSaveButton() {
   return (
     <Button className="mt-6 w-full rounded-2xl sm:w-auto" onClick={save} disabled={saving}>
       <Save className="h-4 w-4" />
-      {saving ? "Salvando..." : "Salvar perfil"}
+      {saving ? "Salvando..." : label}
     </Button>
   );
 }

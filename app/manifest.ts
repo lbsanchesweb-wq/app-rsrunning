@@ -2,11 +2,13 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "RE Running",
-    short_name: "RE Running",
+    name: "RS Running",
+    short_name: "RS Running",
     description: "Assessoria premium para corrida de rua.",
     start_url: "/dashboard",
+    scope: "/",
     display: "standalone",
+    orientation: "portrait",
     background_color: "#0F1115",
     theme_color: "#0F1115",
     icons: [

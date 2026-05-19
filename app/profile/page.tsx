@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
-import { ExternalLink, Instagram, MessageCircle, Trophy, UserRound } from "lucide-react";
+import { ExternalLink, Instagram, MessageCircle, QrCode, Trophy } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
+import { AvatarUpload } from "@/components/profile/avatar-upload";
 import { ProfileSaveButton } from "@/components/profile/profile-save-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -9,16 +10,14 @@ const specialties = ["5K e 10K", "Meia maratona", "Retorno pós-lesão", "Base a
 
 export default function ProfilePage() {
   return (
-    <AppShell title="Perfil" subtitle="Dados da conta e preferências.">
+    <AppShell title="Perfil" subtitle="Perfil profissional, dados públicos e chave Pix.">
       <div className="grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
         <Card>
           <div className="flex items-start gap-4">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[1.75rem] border border-primary/25 bg-primary/10 text-primary shadow-glow">
-              <UserRound className="h-10 w-10" aria-hidden />
-            </div>
+            <AvatarUpload label="Enviar foto do professor" size="md" />
             <div className="min-w-0">
               <p className="text-sm font-semibold text-primary">Professor responsável</p>
-              <h1 className="mt-1 text-2xl font-black text-white">RE Running Professor</h1>
+              <h1 className="mt-1 text-2xl font-black text-white">RS Running Professor</h1>
               <p className="mt-2 text-sm leading-6 text-muted">
                 Assessoria de corrida com foco em consistência, performance segura e evolução de longo prazo.
               </p>
@@ -38,24 +37,47 @@ export default function ProfilePage() {
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             <ProfileLink href="https://wa.me/5500000000000" label="WhatsApp" icon={MessageCircle} tone="primary" />
             <ProfileLink href="https://instagram.com" label="Instagram" icon={Instagram} tone="secondary" />
-            <ProfileLink href="https://rerunning.com.br" label="Site" icon={ExternalLink} tone="outline" />
+            <ProfileLink href="https://rsrunning.com.br" label="Site" icon={ExternalLink} tone="outline" />
           </div>
         </Card>
 
         <Card>
-          <CardHeader
-            title="Perfil profissional"
-            description="Informações exibidas para alunos e responsáveis."
+            <CardHeader
+              title="Perfil profissional"
+            description="Informações exibidas no app dos alunos."
             action={<Trophy className="h-5 w-5 text-primary" />}
           />
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Nome" defaultValue="RE Running Professor" />
-            <Field label="Tipo de usuário" defaultValue="Professor" />
+            <Field label="Nome público" defaultValue="Rui Sanches" />
+            <Field label="Nome da assessoria" defaultValue="RS Running" />
             <Field label="Mini bio" defaultValue="Treinador de corrida de rua e performance amadora." wide />
             <Field label="CREF" defaultValue="123456-G/SP" />
             <Field label="Tempo de experiência" defaultValue="8 anos" />
+            <Field label="WhatsApp" defaultValue="(11) 99999-9999" />
+            <Field label="Instagram" defaultValue="@rsrunning" />
+            <Field label="Especialidades" defaultValue="5K, 10K, meia maratona e base aeróbica" wide />
           </div>
           <ProfileSaveButton />
+        </Card>
+
+        <Card className="lg:col-start-2">
+          <CardHeader
+            title="Pagamentos"
+            description="Chave Pix exibida para alunos com mensalidade em aberto."
+            action={<QrCode className="h-5 w-5 text-primary" />}
+          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Tipo da chave Pix" defaultValue="Telefone" />
+            <Field label="Chave Pix" defaultValue="11999999999" />
+            <Field label="Nome do recebedor" defaultValue="Rui Sanches" />
+            <Field label="Banco/conta" defaultValue="Nubank" />
+            <Field
+              label="Mensagem para o aluno"
+              defaultValue="Após pagar, aguarde a conferência do professor para atualização do status."
+              wide
+            />
+          </div>
+          <ProfileSaveButton label="Salvar dados de pagamento" />
         </Card>
       </div>
     </AppShell>

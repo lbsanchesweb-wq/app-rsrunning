@@ -1,19 +1,18 @@
 import { AppShell } from "@/components/layout/app-shell";
-import { WeeklySchedule } from "@/components/training/weekly-schedule";
 import { AddTrainingButton } from "@/components/actions/add-training-button";
+import { WeeklyPlanBuilder } from "@/components/training/weekly-plan-builder";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { weeklySessions } from "@/lib/data";
 
-const trainingTypes = ["Rodagem leve", "Rodagem moderada", "Fartlek", "Tiros", "Longão", "Rampa", "Prova"];
+const trainingTypes = ["Rodagem leve", "Rodagem moderada", "Fartlek", "Tiros", "Longão", "Rampa"];
 
 export default function TrainingPage() {
   return (
-    <AppShell title="Treinos" subtitle="Monte semanas de treino e acompanhe conclusões.">
-      <Card>
+    <AppShell title="Treinos" subtitle="Monte e publique semanas personalizadas para cada aluno.">
+      <Card className="mb-5">
         <CardHeader
-          title="Tipos de treino"
-          description="Biblioteca base para montar a semana dos alunos."
+          title="Biblioteca de treinos"
+          description="Use os modelos como base para criar o cronograma semanal do aluno."
           action={<AddTrainingButton />}
         />
         <div className="flex flex-wrap gap-2">
@@ -22,9 +21,7 @@ export default function TrainingPage() {
           ))}
         </div>
       </Card>
-      <div className="mt-5">
-        <WeeklySchedule sessions={weeklySessions} />
-      </div>
+      <WeeklyPlanBuilder />
     </AppShell>
   );
 }

@@ -12,7 +12,7 @@ export default function LoginPage() {
           <div className="relative aspect-[4/5] overflow-hidden rounded-3xl border border-border bg-card shadow-glow">
             <Image
               src="/re-running-brand.png"
-              alt="RE Running"
+              alt="RS Running"
               fill
               priority
               sizes="520px"
@@ -36,7 +36,7 @@ export default function LoginPage() {
               <span className="text-sm font-medium text-white">Email</span>
               <input
                 type="email"
-                placeholder="voce@rerunning.com"
+                placeholder="voce@rsrunning.com"
                 className="mt-2 h-12 w-full rounded-xl border border-border bg-white/5 px-4 text-white outline-none transition placeholder:text-muted focus:border-primary/60"
               />
             </label>

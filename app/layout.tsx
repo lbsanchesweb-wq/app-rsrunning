@@ -1,11 +1,18 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { SplashScreen } from "@/components/pwa/splash-screen";
 import { ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "RE Running",
+  title: "RS Running",
   description: "Assessoria premium para corrida de rua.",
+  applicationName: "RS Running",
+  appleWebApp: {
+    capable: true,
+    title: "RS Running",
+    statusBarStyle: "black-translucent",
+  },
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -16,11 +23,18 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: "#0F1115",
+};
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="pt-BR" className="dark">
       <body className="min-h-screen bg-background font-sans antialiased">
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          <SplashScreen />
+          {children}
+        </ToastProvider>
       </body>
     </html>
   );
