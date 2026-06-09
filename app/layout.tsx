@@ -1,41 +1,53 @@
 import type { Metadata, Viewport } from "next";
-import type { ReactNode } from "react";
-import { SplashScreen } from "@/components/pwa/splash-screen";
-import { ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "RS Running",
-  description: "Assessoria premium para corrida de rua.",
+  metadataBase: new URL("https://rs-running.vercel.app"),
+  title: "RS Running App Beta",
+  description:
+    "Acompanhe seus treinos, evolução e cronograma diretamente pelo app da RS Running.",
   applicationName: "RS Running",
-  appleWebApp: {
-    capable: true,
-    title: "RS Running",
-    statusBarStyle: "black-translucent",
-  },
   manifest: "/manifest.webmanifest",
-  icons: {
-    icon: [
-      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
-      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+  openGraph: {
+    title: "RS Running App Beta",
+    description:
+      "Seu treino agora vai com você. Instale e acompanhe sua evolução no celular.",
+    url: "https://app-rsrunning.vercel.app/student",
+    siteName: "RS Running",
+    images: [
+      {
+        url: "/rs-running-hero-mockup.png",
+        width: 1536,
+        height: 1024,
+        alt: "Mockup do app RS Running"
+      }
     ],
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    locale: "pt_BR",
+    type: "website"
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "RS Running App Beta",
+    description:
+      "Acompanhe treinos, evolução e cronograma diretamente pelo app da RS Running.",
+    images: ["/rs-running-hero-mockup.png"]
+  }
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0F1115",
+  themeColor: "#050609",
+  width: "device-width",
+  initialScale: 1
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout({
+  children
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <html lang="pt-BR" className="dark">
-      <body className="min-h-screen bg-background font-sans antialiased">
-        <ToastProvider>
-          <SplashScreen />
-          {children}
-        </ToastProvider>
-      </body>
+    <html lang="pt-BR">
+      <body>{children}</body>
     </html>
   );
 }

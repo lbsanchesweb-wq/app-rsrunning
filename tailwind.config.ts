@@ -2,43 +2,26 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: [
-    "./app/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}",
-    "./lib/**/*.{ts,tsx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}"
   ],
   theme: {
     extend: {
       colors: {
-        background: "#0F1115",
-        card: "#1A1D22",
-        primary: "#C8FF1A",
-        secondary: "#A6E800",
-        muted: "#BFC3C9",
-        border: "rgba(255,255,255,0.1)",
-      },
-      fontFamily: {
-        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        acid: "#C6FF1A",
+        ink: "#050609",
+        graphite: "#11151A"
       },
       boxShadow: {
-        glow: "0 0 28px rgba(200, 255, 26, 0.16)",
-        card: "0 18px 48px rgba(0, 0, 0, 0.28)",
+        "acid-soft": "0 0 54px rgba(198, 255, 26, 0.18)",
+        "acid-card": "0 24px 80px rgba(198, 255, 26, 0.08)"
       },
-      keyframes: {
-        "fade-in": {
-          from: { opacity: "0" },
-          to: { opacity: "1" },
-        },
-        "slide-in-from-bottom-2": {
-          from: { transform: "translateY(0.5rem)" },
-          to: { transform: "translateY(0)" },
-        },
-      },
-      animation: {
-        "in": "fade-in 180ms ease-out, slide-in-from-bottom-2 180ms ease-out",
-      },
-    },
+      backgroundImage: {
+        "radial-acid": "radial-gradient(circle at center, rgba(198,255,26,0.32), rgba(198,255,26,0.06) 36%, transparent 68%)"
+      }
+    }
   },
-  plugins: [],
+  plugins: []
 };
 
 export default config;
