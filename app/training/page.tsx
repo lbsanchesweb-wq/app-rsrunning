@@ -70,14 +70,18 @@ export default function TrainingPage() {
 
   async function loadData() {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!user || !session) return
 
-    const [{ data: studs }, { data: tmpl }] = await Promise.all([
-      supabase.from('profiles').select('id,name').eq('role', 'student').order('name'),
+    const [studentsResponse, { data: tmpl }] = await Promise.all([
+      fetch('/api/admin/students', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      }),
       supabase.from('workout_templates').select('*').eq('coach_id', user.id).order('type'),
     ])
+    const studentsResult = await studentsResponse.json()
 
-    setStudents(studs || [])
+    setStudents(studentsResponse.ok ? studentsResult.students || [] : [])
     setTemplates(tmpl || [])
   }
 

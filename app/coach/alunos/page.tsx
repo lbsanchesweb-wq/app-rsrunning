@@ -37,46 +37,24 @@ export default function CoachStudentsPage() {
   useEffect(() => { loadStudents() }, [])
 
   async function loadStudents() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      setLoading(false)
+      return
+    }
 
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id,name,email,avatar_url')
-      .eq('role', 'student')
-      .order('name')
+    const response = await fetch('/api/admin/students', {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+    const result = await response.json()
 
-    if (!profiles?.length) {
+    if (!response.ok || !result.students?.length) {
       setStudents([])
       setLoading(false)
       return
     }
 
-    const rows = await Promise.all(profiles.map(async (profile) => {
-      const [{ data: student }, { data: weeks }, { data: payments }] = await Promise.all([
-        supabase.from('students').select('goal,total_km,total_workouts').eq('id', profile.id).single(),
-        supabase.from('weeks').select('label,workouts(status)').eq('student_id', profile.id).eq('status', 'published').order('date_start', { ascending: false }).limit(1),
-        supabase.from('payments').select('status,month').eq('student_id', profile.id).order('created_at', { ascending: false }).limit(1),
-      ])
-
-      const week = weeks?.[0]
-      const done = week?.workouts?.filter((workout: any) => workout.status === 'done').length || 0
-      const total = week?.workouts?.length || 0
-
-      return {
-        id: profile.id,
-        name: profile.name,
-        email: profile.email,
-        avatar_url: profile.avatar_url,
-        goal: student?.goal,
-        total_km: student?.total_km,
-        total_workouts: student?.total_workouts,
-        week: week ? { label: week.label, done, total } : undefined,
-        payment: payments?.[0],
-      }
-    }))
-
-    setStudents(rows)
+    setStudents(result.students)
     setLoading(false)
   }
 
