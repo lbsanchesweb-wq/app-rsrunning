@@ -1,128 +1,161 @@
-import { Activity, BadgeCheck, Medal, ShieldCheck, Sparkles, Trophy } from "lucide-react";
-import { AppShell } from "@/components/layout/app-shell";
-import { AvatarUpload } from "@/components/profile/avatar-upload";
-import { StudentProfileEditButton } from "@/components/profile/student-profile-edit-button";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader } from "@/components/ui/card";
-
-const achievements = [
-  { icon: Trophy, title: "Semana completa", helper: "4 treinos concluídos" },
-  { icon: Medal, title: "Consistência", helper: "30 dias ativos" },
-  { icon: Sparkles, title: "Evolução", helper: "+12% no índice" },
-];
-
-const stats = [
-  { label: "Km acumulados", value: "428 km" },
-  { label: "Treinos feitos", value: "76" },
-  { label: "Sequência atual", value: "4 dias" },
-  { label: "Conclusão", value: "86%" },
-];
+'use client'
+import { useEffect, useState, useRef } from 'react'
+import Link from 'next/link'
+import { createClient, type Profile, type Student, BADGE_META, type BadgeKey } from '@/lib/supabase'
+import { Home, Calendar, BarChart2, CreditCard, User, Camera, LogOut } from 'lucide-react'
 
 export default function StudentProfilePage() {
-  return (
-    <AppShell mode="student" title="Perfil" subtitle="Sua jornada, conquistas e conexões.">
-      <div className="grid gap-5 lg:grid-cols-[0.85fr_1.15fr]">
-        <Card>
-          <div className="flex items-start gap-4">
-            <AvatarUpload label="Enviar foto do aluno" />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-primary">Aluno RS Running</p>
-              <h1 className="mt-1 text-2xl font-black text-white">Marina Costa</h1>
-              <p className="mt-2 text-sm leading-6 text-muted">
-                Foco em meia maratona, consistência semanal e evolução com controle.
-              </p>
-            </div>
-          </div>
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [student, setStudent] = useState<Student | null>(null)
+  const [badges, setBadges] = useState<BadgeKey[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [name, setName] = useState('')
+  const [goal, setGoal] = useState('')
+  const [nextRace, setNextRace] = useState('')
+  const [saved, setSaved] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const supabase = createClient()
 
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            {stats.map((stat) => (
-              <div key={stat.label} className="rounded-2xl bg-white/[0.06] p-4">
-                <p className="text-xs text-muted">{stat.label}</p>
-                <p className="mt-1 font-black text-white">{stat.value}</p>
+  useEffect(() => { loadData() }, [])
+
+  async function loadData() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const [{ data: prof }, { data: stud }, { data: b }] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', user.id).single(),
+      supabase.from('students').select('*').eq('id', user.id).single(),
+      supabase.from('badges').select('badge_key').eq('student_id', user.id),
+    ])
+    setProfile(prof); setStudent(stud)
+    setName(prof?.name || ''); setGoal(stud?.goal || ''); setNextRace(stud?.next_race || '')
+    setBadges((b || []).map((x: any) => x.badge_key as BadgeKey))
+  }
+
+  async function uploadAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !profile) return
+    setUploading(true)
+    const ext = file.name.split('.').pop()
+    const path = `${profile.id}/avatar.${ext}`
+    const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+    if (!error) {
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
+      await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', profile.id)
+      setProfile(prev => prev ? { ...prev, avatar_url: publicUrl } : null)
+    }
+    setUploading(false)
+  }
+
+  async function saveProfile() {
+    if (!profile) return
+    setSaving(true)
+    await Promise.all([
+      supabase.from('profiles').update({ name }).eq('id', profile.id),
+      supabase.from('students').update({ goal, next_race: nextRace }).eq('id', profile.id),
+    ])
+    setSaving(false); setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  async function logout() {
+    await supabase.auth.signOut()
+    window.location.href = '/login'
+  }
+
+  const initials = profile?.name.split(' ').map(n => n[0]).slice(0,2).join('') || '?'
+
+  return (
+    <>
+      <div className="topbar">
+        <div style={{ display:'flex',alignItems:'center',gap:'8px' }}>
+          <div style={{ background:'var(--rs-neon)',color:'#000',fontWeight:800,fontSize:'14px',padding:'4px 8px',borderRadius:'6px' }}>RS</div>
+          <span style={{ fontSize:'14px',fontWeight:600,letterSpacing:'1px' }}>Perfil</span>
+        </div>
+        <button onClick={logout} style={{ background:'none',border:'none',color:'var(--rs-muted)',cursor:'pointer',display:'flex',alignItems:'center',gap:'4px',fontSize:'12px' }}>
+          <LogOut size={16} /> Sair
+        </button>
+      </div>
+
+      <div className="page fade-up">
+        <div className="card" style={{ textAlign:'center',padding:'24px 16px',marginBottom:'12px' }}>
+          <div style={{ position:'relative',display:'inline-block',marginBottom:'12px' }}>
+            {profile?.avatar_url
+              ? <img src={profile.avatar_url} alt="Avatar" style={{ width:'80px',height:'80px',borderRadius:'50%',objectFit:'cover',border:'2px solid var(--rs-neon)' }} />
+              : <div style={{ width:'80px',height:'80px',borderRadius:'50%',background:'var(--rs-card2)',border:'2px solid var(--rs-neon)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'28px',fontWeight:800,color:'var(--rs-neon)',margin:'0 auto' }}>{initials}</div>
+            }
+            <button onClick={() => fileRef.current?.click()} disabled={uploading} style={{ position:'absolute',bottom:0,right:0,background:'var(--rs-neon)',border:'none',borderRadius:'50%',width:'26px',height:'26px',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer' }}>
+              <Camera size={13} color="#000" />
+            </button>
+            <input ref={fileRef} type="file" accept="image/*" onChange={uploadAvatar} style={{ display:'none' }} />
+          </div>
+          {uploading && <p style={{ fontSize:'11px',color:'var(--rs-neon)',marginBottom:'4px' }}>Salvando foto...</p>}
+          <div style={{ fontWeight:800,fontSize:'20px',marginBottom:'2px' }}>{profile?.name}</div>
+          <div style={{ fontSize:'13px',color:'var(--rs-muted)' }}>Aluno RS Running</div>
+
+          <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'8px',marginTop:'16px' }}>
+            {[
+              { val: `${(student?.total_km || 0).toFixed(0)} km`, label: 'Acumulado' },
+              { val: String(student?.total_workouts || 0), label: 'Treinos' },
+              { val: `${student?.xp || 0} XP`, label: 'Pontos' },
+            ].map(s => (
+              <div key={s.label} style={{ background:'var(--rs-card2)',borderRadius:'10px',padding:'8px' }}>
+                <div style={{ fontSize:'16px',fontWeight:800,color:'var(--rs-neon)' }}>{s.val}</div>
+                <div style={{ fontSize:'10px',color:'var(--rs-muted)',marginTop:'2px' }}>{s.label}</div>
               </div>
             ))}
           </div>
+        </div>
 
-          <StudentProfileEditButton />
-        </Card>
-
-        <div className="space-y-5">
-          <Card>
-            <CardHeader
-              title="Seu professor"
-              description="Informações principais, de forma discreta."
-              action={<Badge>Ativo</Badge>}
-            />
-            <div className="flex items-center gap-3 rounded-2xl bg-white/[0.06] p-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10 text-primary">
-                <ShieldCheck className="h-6 w-6" aria-hidden />
-              </div>
-              <div className="min-w-0">
-                <p className="truncate font-semibold text-white">Rui Sanches</p>
-                <p className="text-sm text-muted">Corrida de rua / Meia maratona</p>
-              </div>
+        <div className="card" style={{ marginBottom:'12px' }}>
+          <p style={{ fontSize:'11px',color:'var(--rs-muted)',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'12px' }}>Editar perfil</p>
+          <div style={{ display:'flex',flexDirection:'column',gap:'10px' }}>
+            <div>
+              <label style={{ fontSize:'12px',color:'var(--rs-muted)',marginBottom:'5px',display:'block' }}>Nome</label>
+              <input value={name} onChange={e => setName(e.target.value)} placeholder="Seu nome" />
             </div>
-          </Card>
+            <div>
+              <label style={{ fontSize:'12px',color:'var(--rs-muted)',marginBottom:'5px',display:'block' }}>Objetivo</label>
+              <input value={goal} onChange={e => setGoal(e.target.value)} placeholder="Ex: Meia maratona sub 2h" />
+            </div>
+            <div>
+              <label style={{ fontSize:'12px',color:'var(--rs-muted)',marginBottom:'5px',display:'block' }}>Próxima prova</label>
+              <input value={nextRace} onChange={e => setNextRace(e.target.value)} placeholder="Ex: SP City 21K" />
+            </div>
+            {saved && <p style={{ fontSize:'12px',color:'var(--rs-neon)',textAlign:'center' }}>Perfil salvo!</p>}
+            <button className="btn-primary" onClick={saveProfile} disabled={saving}>{saving ? 'Salvando...' : 'Salvar alterações'}</button>
+          </div>
+        </div>
 
-          <Card>
-            <CardHeader title="Insígnias conquistadas" description="Marcos importantes da sua evolução." />
-            <div className="grid gap-3 sm:grid-cols-3">
-              {achievements.map((item) => {
-                const Icon = item.icon;
-
+        {badges.length > 0 && (
+          <>
+            <p style={{ fontSize:'11px',color:'var(--rs-muted)',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'10px' }}>Insígnias ({badges.length})</p>
+            <div style={{ display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'8px' }}>
+              {badges.map(key => {
+                const meta = BADGE_META[key]
                 return (
-                  <div key={item.title} className="rounded-2xl bg-white/[0.06] p-4">
-                    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10">
-                      <Icon className="h-5 w-5 text-primary" aria-hidden />
-                    </div>
-                    <p className="font-semibold text-white">{item.title}</p>
-                    <p className="mt-1 text-sm leading-5 text-muted">{item.helper}</p>
+                  <div key={key} className="card" style={{ textAlign:'center',padding:'10px 6px' }}>
+                    <div style={{ fontSize:'22px',marginBottom:'4px' }}>⭐</div>
+                    <div style={{ fontSize:'10px',fontWeight:600,lineHeight:'1.3' }}>{meta.name}</div>
                   </div>
-                );
+                )
               })}
             </div>
-          </Card>
-
-          <Card>
-            <CardHeader
-              title="Conexões"
-              description="Sincronização com relógios e aplicativos."
-              action={<Activity className="h-5 w-5 text-primary" />}
-            />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <IntegrationCard name="Garmin" helper="Conectar relógio" logo="GARMIN" />
-              <IntegrationCard name="Strava" helper="Importar atividades" logo="STRAVA" />
-            </div>
-          </Card>
-        </div>
+          </>
+        )}
       </div>
-    </AppShell>
-  );
-}
 
-function IntegrationCard({
-  name,
-  helper,
-  logo,
-}: {
-  name: string;
-  helper: string;
-  logo: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-border bg-white/[0.05] p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-lg font-black tracking-[0.08em] text-white">{logo}</p>
-          <p className="mt-1 text-sm text-muted">{helper}</p>
-        </div>
-        <Badge className="border-white/15 bg-white/10 text-muted">Em breve</Badge>
-      </div>
-      <Button variant="outline" className="mt-4 w-full rounded-2xl" disabled>
-        <BadgeCheck className="h-4 w-4" />
-        Configurar {name}
-      </Button>
-    </div>
-  );
+      <nav className="tabbar">
+        {[
+          { href:'/student', icon:<Home size={22}/>, label:'Início' },
+          { href:'/student/semana', icon:<Calendar size={22}/>, label:'Semana' },
+          { href:'/student/evolucao', icon:<BarChart2 size={22}/>, label:'Evolução' },
+          { href:'/student/mensalidade', icon:<CreditCard size={22}/>, label:'Mensalidade' },
+          { href:'/student/profile', icon:<User size={22}/>, label:'Perfil', active:true },
+        ].map(tab => (
+          <Link key={tab.href} href={tab.href} className={`tab-item${tab.active?' active':''}`}>{tab.icon}<span>{tab.label}</span></Link>
+        ))}
+      </nav>
+    </>
+  )
 }
