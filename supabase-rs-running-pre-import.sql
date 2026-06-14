@@ -23,13 +23,13 @@ create or replace function public.is_coach(user_id uuid)
 returns boolean
 language sql
 security definer
-set search_path = public
+set search_path = auth, public
 as $$
   select exists (
     select 1
-    from public.profiles
+    from auth.users
     where id = user_id
-    and role = 'coach'
+    and raw_user_meta_data->>'role' = 'coach'
   );
 $$;
 

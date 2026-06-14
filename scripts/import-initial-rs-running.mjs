@@ -320,7 +320,6 @@ async function recreatePublishedWeek(student, studentId, coachId) {
       title: workout.title,
       description: workout.description ?? null,
       planned_km: workout.planned_km ?? null,
-      planned_duration: workout.planned_duration ?? null,
       planned_pace: workout.planned_pace ?? null,
       suggested_day: workout.suggested_day ?? null,
       order_num: index + 1,
