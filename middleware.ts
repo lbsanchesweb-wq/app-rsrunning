@@ -41,7 +41,8 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    const dest = profile?.role === 'coach' ? '/coach' : '/student'
+    const role = profile?.role || user.user_metadata?.role
+    const dest = role === 'coach' ? '/coach' : '/student'
     return NextResponse.redirect(new URL(dest, request.url))
   }
 

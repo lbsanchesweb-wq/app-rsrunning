@@ -18,7 +18,8 @@ export default function LoginPage() {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) { setError('E-mail ou senha inválidos.'); setLoading(false); return }
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single()
-    router.push(profile?.role === 'coach' ? '/coach' : '/student')
+    const role = profile?.role || data.user.user_metadata?.role
+    router.push(role === 'coach' ? '/coach' : '/student')
   }
 
   return (
