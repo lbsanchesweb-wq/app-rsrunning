@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient, type Week, type Workout } from '@/lib/supabase'
-import { Home, Calendar, BarChart2, CreditCard, User, CheckCircle2, Circle, Clock, Footprints } from 'lucide-react'
+import { Home, Calendar, BarChart2, CreditCard, User, CheckCircle2, Circle, Clock, Footprints, XCircle, Image as ImageIcon } from 'lucide-react'
 
 export default function SemanaPage() {
   const [week, setWeek] = useState<Week | null>(null)
@@ -24,8 +24,8 @@ export default function SemanaPage() {
   }, [])
 
   const typeLabel: Record<string, string> = {
-    rodagem_leve: 'Rodagem leve', rodagem_moderada: 'Rodagem moderada',
-    fartlek: 'Fartlek', tiros: 'Tiros', longao: 'Longão',
+    rodagem_leve: 'Base', rodagem_moderada: 'Base',
+    fartlek: 'Fartlek', tiros: 'Intervalado', longao: 'Longo',
     rampa: 'Rampa', regenerativo: 'Regenerativo', prova: 'Prova',
     ritmado: 'Ritmado', desafio: 'Desafio',
   }
@@ -38,6 +38,7 @@ export default function SemanaPage() {
 
   const sorted = week?.workouts ? [...(week.workouts as Workout[])].sort((a,b) => a.order_num - b.order_num) : []
   const done = sorted.filter(w => w.status === 'done').length
+  const skipped = sorted.filter(w => w.status === 'skipped').length
 
   if (loading) return <div style={{ display:'flex',alignItems:'center',justifyContent:'center',height:'100dvh' }}><div style={{ color:'var(--rs-neon)',fontSize:'14px' }}>Carregando...</div></div>
 
@@ -63,7 +64,8 @@ export default function SemanaPage() {
             <div className="card" style={{ marginBottom:'14px',display:'flex',justifyContent:'space-between',alignItems:'center' }}>
               <div>
                 <p className="label-neon">{week.label}</p>
-                <p style={{ fontSize:'13px',color:'var(--rs-muted)',marginTop:'2px' }}>{sorted.length} treinos programados</p>
+                <p style={{ fontSize:'13px',color:'var(--rs-muted)',marginTop:'2px' }}>{sorted.length} treinos em ordem sugerida</p>
+                {skipped > 0 && <p style={{ fontSize:'11px',color:'var(--rs-warning)',marginTop:'3px' }}>{skipped} não realizado{skipped > 1 ? 's' : ''}</p>}
               </div>
               <div style={{ textAlign:'right' }}>
                 <div style={{ fontSize:'24px',fontWeight:800,color:'var(--rs-neon)' }}>{Math.round((done/sorted.length)*100)}%</div>
@@ -76,10 +78,9 @@ export default function SemanaPage() {
                 <div key={workout.id} className="card" style={{ borderLeft: `3px solid ${typeColor[workout.type] || 'var(--rs-neon)'}`, borderRadius:'16px', opacity: workout.status === 'skipped' ? 0.5 : 1 }}>
                   <div style={{ display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'6px' }}>
                     <div style={{ display:'flex',alignItems:'center',gap:'8px' }}>
-                      {workout.status === 'done'
-                        ? <CheckCircle2 size={20} color="var(--rs-neon)" />
-                        : <Circle size={20} color="var(--rs-muted)" />
-                      }
+                      {workout.status === 'done' ? <CheckCircle2 size={20} color="var(--rs-neon)" />
+                        : workout.status === 'skipped' ? <XCircle size={20} color="var(--rs-warning)" />
+                        : <Circle size={20} color="var(--rs-muted)" />}
                       <div>
                         <p style={{ fontSize:'10px',color:'var(--rs-muted)',letterSpacing:'0.6px' }}>Treino {i+1}{workout.suggested_day ? ` · ${workout.suggested_day}` : ''}</p>
                         <h3 style={{ fontSize:'16px',fontWeight:700 }}>{workout.title}</h3>
@@ -113,6 +114,14 @@ export default function SemanaPage() {
                         {workout.feeling && <span>Sensação: {workout.feeling.replace('_',' ')}</span>}
                       </div>
                       {workout.notes && <p style={{ fontSize:'12px',color:'var(--rs-muted)',marginTop:'4px' }}>{workout.notes}</p>}
+                      {!!workout.result_images?.length && <p style={{ fontSize:'12px',color:'var(--rs-muted)',marginTop:'5px',display:'flex',alignItems:'center',gap:'5px' }}><ImageIcon size={12} /> {workout.result_images.length} comprovante{workout.result_images.length > 1 ? 's' : ''}</p>}
+                    </div>
+                  )}
+
+                  {workout.status === 'skipped' && (
+                    <div style={{ marginTop:'10px',marginLeft:'28px',background:'var(--rs-card2)',borderRadius:'8px',padding:'8px 10px' }}>
+                      <p style={{ fontSize:'11px',color:'var(--rs-warning)',marginBottom:'2px' }}>Não realizado</p>
+                      {workout.skip_reason && <p style={{ fontSize:'12px',color:'var(--rs-muted)' }}>{workout.skip_reason}</p>}
                     </div>
                   )}
                 </div>

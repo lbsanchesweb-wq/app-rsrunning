@@ -13,6 +13,7 @@ create table public.profiles (
   avatar_url text,
   whatsapp text,
   bio text,
+  birth_date date,
   created_at timestamptz default now()
 );
 
@@ -78,6 +79,8 @@ create table public.workouts (
   actual_pace text,
   feeling text check (feeling in ('facil','ok','dificil','muito_dificil')),
   notes text,
+  skip_reason text,
+  result_images text[] default '{}',
   created_at timestamptz default now()
 );
 
@@ -187,6 +190,27 @@ create policy "Upload próprio avatar" on storage.objects for insert with check 
 );
 create policy "Atualizar próprio avatar" on storage.objects for update using (
   bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]
+);
+
+-- Comprovantes de treino privados. O primeiro diretorio sempre e o UUID do aluno.
+insert into storage.buckets (id, name, public)
+values ('workout-results', 'workout-results', false)
+on conflict (id) do update set public = false;
+create policy "Aluno le seus comprovantes" on storage.objects for select to authenticated using (
+  bucket_id = 'workout-results' and auth.uid()::text = (storage.foldername(name))[1]
+);
+create policy "Aluno envia comprovante" on storage.objects for insert to authenticated with check (
+  bucket_id = 'workout-results' and auth.uid()::text = (storage.foldername(name))[1]
+);
+create policy "Aluno atualiza comprovante" on storage.objects for update to authenticated using (
+  bucket_id = 'workout-results' and auth.uid()::text = (storage.foldername(name))[1]
+);
+create policy "Coach le comprovantes dos alunos" on storage.objects for select to authenticated using (
+  bucket_id = 'workout-results' and exists (
+    select 1 from public.workouts workout
+    join public.weeks week on week.id = workout.week_id
+    where workout.id::text = (storage.foldername(name))[2] and week.coach_id = auth.uid()
+  )
 );
 
 -- Dados iniciais: biblioteca de treinos do Rui
