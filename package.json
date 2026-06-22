@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed:initial": "node scripts/import-initial-rs-running.mjs"
+    "seed:initial": "node scripts/import-initial-rs-running.mjs",
+    "publish:week:2026-06-22": "node scripts/publish-week-2026-06-22.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
