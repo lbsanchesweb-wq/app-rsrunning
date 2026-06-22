@@ -118,34 +118,44 @@ begin
   end if;
 
   if source_date is not null then
-    update public.workouts set scheduled_order = greatest(1, coalesce(scheduled_order, order_num) - 1)
-    where week_id = selected_week and scheduled_date = source_date and id <> p_entry_id
-      and coalesce(scheduled_order, order_num) > coalesce(source_order, 0);
-    update public.athlete_activities set display_order = greatest(1, display_order - 1)
-    where week_id = selected_week and activity_date = source_date and id <> p_entry_id
-      and display_order > coalesce(source_order, 0);
+    update public.workouts as workout
+    set scheduled_order = greatest(1, coalesce(workout.scheduled_order, workout.order_num) - 1)
+    where workout.week_id = selected_week and workout.scheduled_date = source_date and workout.id <> p_entry_id
+      and coalesce(workout.scheduled_order, workout.order_num) > coalesce(source_order, 0);
+    update public.athlete_activities as activity
+    set display_order = greatest(1, activity.display_order - 1)
+    where activity.week_id = selected_week and activity.activity_date = source_date and activity.id <> p_entry_id
+      and activity.display_order > coalesce(source_order, 0);
   end if;
 
   select count(*) into target_count from (
-    select id from public.workouts where week_id = selected_week and scheduled_date = p_target_date and not (p_entry_kind = 'workout' and id = p_entry_id)
+    select workout.id from public.workouts as workout
+    where workout.week_id = selected_week and workout.scheduled_date = p_target_date
+      and not (p_entry_kind = 'workout' and workout.id = p_entry_id)
     union all
-    select id from public.athlete_activities where week_id = selected_week and activity_date = p_target_date and not (p_entry_kind = 'activity' and id = p_entry_id)
+    select activity.id from public.athlete_activities as activity
+    where activity.week_id = selected_week and activity.activity_date = p_target_date
+      and not (p_entry_kind = 'activity' and activity.id = p_entry_id)
   ) entries;
   target_position := greatest(1, least(coalesce(p_target_position, 1), target_count + 1));
 
-  update public.workouts set scheduled_order = coalesce(scheduled_order, order_num) + 1
-  where week_id = selected_week and scheduled_date = p_target_date and id <> p_entry_id
-    and coalesce(scheduled_order, order_num) >= target_position;
-  update public.athlete_activities set display_order = display_order + 1
-  where week_id = selected_week and activity_date = p_target_date and id <> p_entry_id
-    and display_order >= target_position;
+  update public.workouts as workout
+  set scheduled_order = coalesce(workout.scheduled_order, workout.order_num) + 1
+  where workout.week_id = selected_week and workout.scheduled_date = p_target_date and workout.id <> p_entry_id
+    and coalesce(workout.scheduled_order, workout.order_num) >= target_position;
+  update public.athlete_activities as activity
+  set display_order = activity.display_order + 1
+  where activity.week_id = selected_week and activity.activity_date = p_target_date and activity.id <> p_entry_id
+    and activity.display_order >= target_position;
 
   if p_entry_kind = 'workout' then
-    update public.workouts set scheduled_date = p_target_date, scheduled_order = target_position, schedule_updated_at = now()
-    where id = p_entry_id;
+    update public.workouts as workout
+    set scheduled_date = p_target_date, scheduled_order = target_position, schedule_updated_at = now()
+    where workout.id = p_entry_id;
   else
-    update public.athlete_activities set activity_date = p_target_date, display_order = target_position
-    where id = p_entry_id;
+    update public.athlete_activities as activity
+    set activity_date = p_target_date, display_order = target_position
+    where activity.id = p_entry_id;
   end if;
 
   delete from public.week_day_plans where week_id = selected_week and plan_date = p_target_date;
