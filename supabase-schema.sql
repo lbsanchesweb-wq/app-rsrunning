@@ -72,6 +72,9 @@ create table public.workouts (
   planned_pace text,
   suggested_day text,
   order_num integer default 1,
+  scheduled_date date,
+  scheduled_order integer default 1,
+  schedule_updated_at timestamptz,
   status text default 'pending' check (status in ('pending','done','skipped')),
   done_at timestamptz,
   actual_km numeric,
@@ -83,6 +86,74 @@ create table public.workouts (
   result_images text[] default '{}',
   created_at timestamptz default now()
 );
+
+create table public.week_day_plans (
+  id uuid default uuid_generate_v4() primary key,
+  week_id uuid references public.weeks(id) on delete cascade,
+  student_id uuid references public.profiles(id) on delete cascade,
+  plan_date date not null,
+  is_rest boolean default false,
+  notes text,
+  unique(week_id, plan_date)
+);
+
+create table public.athlete_activities (
+  id uuid default uuid_generate_v4() primary key,
+  week_id uuid references public.weeks(id) on delete cascade,
+  student_id uuid references public.profiles(id) on delete cascade,
+  activity_date date not null,
+  activity_type text not null check (activity_type in ('corrida','caminhada','bicicleta','musculacao','natacao','mobilidade','outro')),
+  title text not null,
+  duration_minutes integer,
+  distance_km numeric,
+  effort text check (effort in ('leve','moderado','forte','maximo')),
+  notes text,
+  result_images text[] default '{}',
+  display_order integer default 1,
+  created_at timestamptz default now()
+);
+
+create or replace function public.sync_athlete_activity_volume()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare delta numeric;
+begin
+  if tg_op = 'INSERT' then delta := coalesce(new.distance_km, 0);
+  elsif tg_op = 'DELETE' then delta := -coalesce(old.distance_km, 0);
+  else delta := coalesce(new.distance_km, 0) - coalesce(old.distance_km, 0);
+  end if;
+  update public.students set total_km = greatest(0, coalesce(total_km, 0) + delta)
+  where id = coalesce(new.student_id, old.student_id);
+  if tg_op = 'DELETE' then return old; end if;
+  return new;
+end;
+$$;
+create trigger sync_athlete_activity_volume_trigger
+after insert or update of distance_km or delete on public.athlete_activities
+for each row execute function public.sync_athlete_activity_volume();
+
+create or replace function public.protect_workout_prescription()
+returns trigger language plpgsql set search_path = public as $$
+declare selected_week public.weeks;
+begin
+  if auth.uid() = old.student_id then
+    if new.week_id is distinct from old.week_id or new.student_id is distinct from old.student_id
+      or new.template_id is distinct from old.template_id or new.type is distinct from old.type
+      or new.title is distinct from old.title or new.description is distinct from old.description
+      or new.planned_km is distinct from old.planned_km or new.planned_duration is distinct from old.planned_duration
+      or new.planned_pace is distinct from old.planned_pace or new.suggested_day is distinct from old.suggested_day
+      or new.order_num is distinct from old.order_num then
+      raise exception 'A prescricao original so pode ser alterada pelo treinador.';
+    end if;
+    select * into selected_week from public.weeks where id = old.week_id;
+    if new.scheduled_date is not null and (new.scheduled_date < selected_week.date_start or new.scheduled_date > selected_week.date_end) then
+      raise exception 'A data escolhida precisa pertencer a semana do treino.';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+create trigger protect_workout_prescription_trigger before update on public.workouts
+for each row execute function public.protect_workout_prescription();
 
 -- Mensalidades
 create table public.payments (
@@ -127,6 +198,8 @@ alter table public.workouts enable row level security;
 alter table public.payments enable row level security;
 alter table public.messages enable row level security;
 alter table public.badges enable row level security;
+alter table public.week_day_plans enable row level security;
+alter table public.athlete_activities enable row level security;
 
 -- Policies: profiles
 create policy "Usuário vê próprio perfil" on public.profiles for select using (auth.uid() = id);
@@ -163,6 +236,18 @@ create policy "Coach gerencia treinos" on public.workouts for all using (
 );
 create policy "Aluno vê e atualiza próprios treinos" on public.workouts for select using (student_id = auth.uid());
 create policy "Aluno marca treino concluído" on public.workouts for update using (student_id = auth.uid());
+create policy "Aluno organiza próprios dias" on public.week_day_plans for all using (student_id = auth.uid()) with check (
+  student_id = auth.uid() and exists (select 1 from public.weeks w where w.id = week_id and w.student_id = auth.uid() and plan_date between w.date_start and w.date_end)
+);
+create policy "Coach vê organização dos alunos" on public.week_day_plans for select using (
+  exists (select 1 from public.weeks w where w.id = week_id and w.coach_id = auth.uid())
+);
+create policy "Aluno gerencia atividades próprias" on public.athlete_activities for all using (student_id = auth.uid()) with check (
+  student_id = auth.uid() and exists (select 1 from public.weeks w where w.id = week_id and w.student_id = auth.uid() and activity_date between w.date_start and w.date_end)
+);
+create policy "Coach vê atividades dos alunos" on public.athlete_activities for select using (
+  exists (select 1 from public.weeks w where w.id = week_id and w.coach_id = auth.uid())
+);
 
 -- Policies: payments
 create policy "Coach gerencia pagamentos" on public.payments for all using (coach_id = auth.uid());
@@ -210,6 +295,29 @@ create policy "Coach le comprovantes dos alunos" on storage.objects for select t
     select 1 from public.workouts workout
     join public.weeks week on week.id = workout.week_id
     where workout.id::text = (storage.foldername(name))[2] and week.coach_id = auth.uid()
+  )
+);
+
+insert into storage.buckets (id, name, public)
+values ('activity-results', 'activity-results', false)
+on conflict (id) do update set public = false;
+create policy "Aluno le imagens de atividades" on storage.objects for select to authenticated using (
+  bucket_id = 'activity-results' and auth.uid()::text = (storage.foldername(name))[1]
+);
+create policy "Aluno envia imagens de atividades" on storage.objects for insert to authenticated with check (
+  bucket_id = 'activity-results' and auth.uid()::text = (storage.foldername(name))[1]
+);
+create policy "Aluno atualiza imagens de atividades" on storage.objects for update to authenticated using (
+  bucket_id = 'activity-results' and auth.uid()::text = (storage.foldername(name))[1]
+);
+create policy "Aluno remove imagens de atividades" on storage.objects for delete to authenticated using (
+  bucket_id = 'activity-results' and auth.uid()::text = (storage.foldername(name))[1]
+);
+create policy "Coach le imagens de atividades" on storage.objects for select to authenticated using (
+  bucket_id = 'activity-results' and exists (
+    select 1 from public.athlete_activities activity
+    join public.weeks week on week.id = activity.week_id
+    where activity.id::text = (storage.foldername(name))[2] and week.coach_id = auth.uid()
   )
 );
 

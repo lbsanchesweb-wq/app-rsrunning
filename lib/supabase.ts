@@ -69,6 +69,9 @@ export type Workout = {
   planned_pace?: string
   suggested_day?: string
   order_num: number
+  scheduled_date?: string
+  scheduled_order: number
+  schedule_updated_at?: string
   status: 'pending' | 'done' | 'skipped'
   done_at?: string
   actual_km?: number
@@ -78,6 +81,33 @@ export type Workout = {
   notes?: string
   skip_reason?: string
   result_images?: string[]
+}
+
+export type WeekDayPlan = {
+  id: string
+  week_id: string
+  student_id: string
+  plan_date: string
+  is_rest: boolean
+  notes?: string
+}
+
+export type AthleteActivityType = 'corrida' | 'caminhada' | 'bicicleta' | 'musculacao' | 'natacao' | 'mobilidade' | 'outro'
+
+export type AthleteActivity = {
+  id: string
+  week_id: string
+  student_id: string
+  activity_date: string
+  activity_type: AthleteActivityType
+  title: string
+  duration_minutes?: number
+  distance_km?: number
+  effort?: 'leve' | 'moderado' | 'forte' | 'maximo'
+  notes?: string
+  result_images?: string[]
+  display_order: number
+  created_at: string
 }
 
 export type Payment = {

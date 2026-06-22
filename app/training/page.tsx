@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient, type WorkoutTemplate, type WorkoutType } from '@/lib/supabase'
+import { dateForSuggestedDay, isoDate } from '@/lib/week-schedule'
 import { Home, Users, Dumbbell, CreditCard, User, Plus, X, Send, CalendarDays, Save, Pencil, Trash2 } from 'lucide-react'
 
 type StudentProfile = { id: string; name: string }
@@ -195,14 +196,15 @@ export default function TrainingPage() {
     const mon = new Date(new Date().setDate(diff))
     const sun = new Date(mon)
     sun.setDate(mon.getDate() + 6)
-    const fmt = (d: Date) => d.toISOString().split('T')[0]
+    const dateStart = isoDate(mon)
+    const dateEnd = isoDate(sun)
 
     const { data: week } = await supabase.from('weeks').insert({
       student_id: selectedStudent,
       coach_id: user?.id,
       label: getCurrentWeekLabel(),
-      date_start: fmt(mon),
-      date_end: fmt(sun),
+      date_start: dateStart,
+      date_end: dateEnd,
       status: 'published',
     }).select().single()
 
@@ -219,6 +221,8 @@ export default function TrainingPage() {
           planned_pace: w.planned_pace || null,
           suggested_day: w.suggested_day || null,
           order_num: i + 1,
+          scheduled_date: dateForSuggestedDay(dateStart, w.suggested_day),
+          scheduled_order: i + 1,
           status: 'pending',
         })),
       )

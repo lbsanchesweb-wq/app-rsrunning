@@ -6,6 +6,7 @@ import { createClient, type Profile, type Student, type Week, type Workout } fro
 import { Home, Calendar, BarChart2, CreditCard, User, MessageCircle, CheckCircle2, Clock, Footprints, XCircle, Image as ImageIcon } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { isoDate, scheduleWorkoutSort } from '@/lib/week-schedule'
 
 type ActionMode = 'complete' | 'skip' | null
 
@@ -150,16 +151,19 @@ export default function StudentPage() {
     }
   }
 
-  const workouts = week?.workouts ? [...(week.workouts as Workout[])].sort((a, b) => a.order_num - b.order_num) : []
+  const workouts = week?.workouts ? [...(week.workouts as Workout[])].sort(scheduleWorkoutSort) : []
   const pendingWorkouts = workouts.filter((workout) => workout.status !== 'done' && workout.status !== 'skipped')
   const skippedWorkouts = workouts.filter((workout) => workout.status === 'skipped')
   const weekDone = workouts.filter((w) => w.status === 'done').length
   const weekTotal = workouts.length
   const pct = weekTotal > 0 ? Math.round((weekDone / weekTotal) * 100) : 0
+  const todayDate = isoDate(new Date())
   const today = format(new Date(), 'EEEE', { locale: ptBR }).toLowerCase()
   const suggestedWorkout = pendingWorkouts.find((workout) =>
-    workout.suggested_day?.toLowerCase().includes(today.slice(0, 3))
-  ) || pendingWorkouts[0] || null
+    workout.scheduled_date === todayDate
+  ) || pendingWorkouts.find(workout => workout.scheduled_date && workout.scheduled_date > todayDate)
+    || pendingWorkouts.find((workout) => workout.suggested_day?.toLowerCase().includes(today.slice(0, 3)))
+    || pendingWorkouts[0] || null
 
   const typeLabel: Record<string, string> = {
     rodagem_leve: 'Base',

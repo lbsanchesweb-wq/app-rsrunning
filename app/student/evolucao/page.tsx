@@ -25,7 +25,7 @@ export default function EvolucaoPage() {
     const [{ data: stud }, { data: earnedBadges }, { data: weeks }] = await Promise.all([
       supabase.from('students').select('total_km,total_workouts,xp').eq('id', user.id).single(),
       supabase.from('badges').select('badge_key').eq('student_id', user.id),
-      supabase.from('weeks').select('label,workouts(status,actual_km,planned_km)').eq('student_id', user.id).eq('status','published').order('date_start', { ascending: false }).limit(8),
+      supabase.from('weeks').select('label,workouts(status,actual_km,planned_km),athlete_activities(distance_km)').eq('student_id', user.id).eq('status','published').order('date_start', { ascending: false }).limit(8),
     ])
 
     setTotalKm(stud?.total_km || 0)
@@ -37,7 +37,9 @@ export default function EvolucaoPage() {
         const wos = w.workouts || []
         const done = wos.filter((x: any) => x.status === 'done').length
         const total = wos.length
-        const km = wos.reduce((s: number, x: any) => s + (x.actual_km || x.planned_km || 0), 0)
+        const prescribedKm = wos.filter((x: any) => x.status === 'done').reduce((s: number, x: any) => s + (x.actual_km || x.planned_km || 0), 0)
+        const extraKm = (w.athlete_activities || []).reduce((s: number, activity: any) => s + (activity.distance_km || 0), 0)
+        const km = prescribedKm + extraKm
         return { label: w.label, km: Math.round(km * 10) / 10, done, total }
       })
       setWeekData(wd)
