@@ -155,6 +155,85 @@ $$;
 create trigger protect_workout_prescription_trigger before update on public.workouts
 for each row execute function public.protect_workout_prescription();
 
+create or replace function public.move_schedule_entry(
+  p_entry_kind text,
+  p_entry_id uuid,
+  p_target_date date,
+  p_target_position integer default 1
+)
+returns table(entry_kind text, entry_id uuid, scheduled_date date, scheduled_order integer)
+language plpgsql security definer set search_path = public as $$
+declare
+  selected_student uuid;
+  selected_week uuid;
+  source_date date;
+  source_order integer;
+  week_start date;
+  week_end date;
+  target_count integer;
+  target_position integer;
+begin
+  if auth.uid() is null then raise exception 'Sessao expirada.'; end if;
+
+  if p_entry_kind = 'workout' then
+    select student_id, week_id, workouts.scheduled_date, coalesce(workouts.scheduled_order, workouts.order_num)
+    into selected_student, selected_week, source_date, source_order
+    from public.workouts where id = p_entry_id;
+  elsif p_entry_kind = 'activity' then
+    select student_id, week_id, activity_date, display_order
+    into selected_student, selected_week, source_date, source_order
+    from public.athlete_activities where id = p_entry_id;
+  else
+    raise exception 'Tipo de item invalido.';
+  end if;
+
+  if selected_student is null or selected_student <> auth.uid() then
+    raise exception 'Item nao encontrado ou sem permissao.';
+  end if;
+
+  select date_start, date_end into week_start, week_end
+  from public.weeks where id = selected_week and student_id = auth.uid() and status = 'published';
+  if week_start is null or p_target_date < week_start or p_target_date > week_end then
+    raise exception 'O dia escolhido nao pertence a semana publicada.';
+  end if;
+
+  if source_date is not null then
+    update public.workouts set scheduled_order = greatest(1, coalesce(scheduled_order, order_num) - 1)
+    where week_id = selected_week and scheduled_date = source_date and id <> p_entry_id
+      and coalesce(scheduled_order, order_num) > coalesce(source_order, 0);
+    update public.athlete_activities set display_order = greatest(1, display_order - 1)
+    where week_id = selected_week and activity_date = source_date and id <> p_entry_id
+      and display_order > coalesce(source_order, 0);
+  end if;
+
+  select count(*) into target_count from (
+    select id from public.workouts where week_id = selected_week and scheduled_date = p_target_date and not (p_entry_kind = 'workout' and id = p_entry_id)
+    union all
+    select id from public.athlete_activities where week_id = selected_week and activity_date = p_target_date and not (p_entry_kind = 'activity' and id = p_entry_id)
+  ) entries;
+  target_position := greatest(1, least(coalesce(p_target_position, 1), target_count + 1));
+
+  update public.workouts set scheduled_order = coalesce(scheduled_order, order_num) + 1
+  where week_id = selected_week and scheduled_date = p_target_date and id <> p_entry_id
+    and coalesce(scheduled_order, order_num) >= target_position;
+  update public.athlete_activities set display_order = display_order + 1
+  where week_id = selected_week and activity_date = p_target_date and id <> p_entry_id
+    and display_order >= target_position;
+
+  if p_entry_kind = 'workout' then
+    update public.workouts set scheduled_date = p_target_date, scheduled_order = target_position, schedule_updated_at = now()
+    where id = p_entry_id;
+  else
+    update public.athlete_activities set activity_date = p_target_date, display_order = target_position
+    where id = p_entry_id;
+  end if;
+
+  delete from public.week_day_plans where week_id = selected_week and plan_date = p_target_date;
+  return query select p_entry_kind, p_entry_id, p_target_date, target_position;
+end;
+$$;
+revoke all on function public.move_schedule_entry(text, uuid, date, integer) from public;
+grant execute on function public.move_schedule_entry(text, uuid, date, integer) to authenticated;
 -- Mensalidades
 create table public.payments (
   id uuid default uuid_generate_v4() primary key,
