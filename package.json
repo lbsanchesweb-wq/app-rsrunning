@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed:initial": "node scripts/import-initial-rs-running.mjs"
+    "seed:initial": "node scripts/import-initial-rs-running.mjs",
+    "seed:staging": "node scripts/seed-staging.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

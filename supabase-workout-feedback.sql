@@ -10,6 +10,13 @@ add column if not exists skip_reason text;
 alter table public.workouts
 add column if not exists result_images text[] default '{}';
 
+-- Compatibilidade com bancos criados antes dos campos de duração.
+alter table public.workouts
+add column if not exists planned_duration integer;
+
+alter table public.workouts
+add column if not exists actual_duration integer;
+
 insert into storage.buckets (id, name, public)
 values ('workout-results', 'workout-results', false)
 on conflict (id) do update set public = false;
