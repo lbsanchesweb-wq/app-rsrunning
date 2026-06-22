@@ -6,7 +6,7 @@ import { Home, Users, Dumbbell, CreditCard, User, AlertCircle, CheckCircle2, Clo
 
 type StudentSummary = {
   id: string; name: string; avatar_url?: string
-  week?: { label: string; done: number; total: number; status: string }
+  week?: { label: string; done: number; skipped: number; pending: number; total: number; status: string }
   payment?: { status: string; month: string }
 }
 
@@ -34,10 +34,12 @@ export default function CoachPage() {
       ])
       const w = weeks?.[0]
       const done = w?.workouts?.filter((wo: any) => wo.status === 'done').length || 0
+      const skipped = w?.workouts?.filter((wo: any) => wo.status === 'skipped').length || 0
       const total = w?.workouts?.length || 0
+      const pending = Math.max(total - done - skipped, 0)
       return {
         id: s.id, name: s.name, avatar_url: s.avatar_url,
-        week: w ? { label: w.label, done, total, status: w.status } : undefined,
+        week: w ? { label: w.label, done, skipped, pending, total, status: w.status } : undefined,
         payment: payments?.[0] ? { status: payments[0].status, month: payments[0].month } : undefined,
       }
     }))
@@ -113,7 +115,7 @@ export default function CoachPage() {
                 <div style={{ flex:1,minWidth:0 }}>
                   <div style={{ fontWeight:700,fontSize:'14px',marginBottom:'2px' }}>{s.name}</div>
                   {s.week
-                    ? <div style={{ fontSize:'12px',color:'var(--rs-muted)' }}>{s.week.done}/{s.week.total} treinos · {s.week.label}</div>
+                    ? <div style={{ fontSize:'12px',color:'var(--rs-muted)' }}>{s.week.done} concluidos · {s.week.skipped} nao realizados · {s.week.pending} pendentes</div>
                     : <div style={{ fontSize:'12px',color:'var(--rs-warning)' }}>Sem semana publicada</div>
                   }
                 </div>

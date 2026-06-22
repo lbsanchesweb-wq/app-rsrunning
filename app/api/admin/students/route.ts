@@ -88,7 +88,9 @@ export async function GET(request: Request) {
 
     const week = weeks?.[0]
     const done = week?.workouts?.filter((workout: { status: string }) => workout.status === 'done').length || 0
+    const skipped = week?.workouts?.filter((workout: { status: string }) => workout.status === 'skipped').length || 0
     const total = week?.workouts?.length || 0
+    const pending = Math.max(total - done - skipped, 0)
 
     return {
       id: profile.id,
@@ -98,7 +100,7 @@ export async function GET(request: Request) {
       goal: student?.goal,
       total_km: student?.total_km,
       total_workouts: student?.total_workouts,
-      week: week ? { label: week.label, done, total } : undefined,
+      week: week ? { label: week.label, done, skipped, pending, total } : undefined,
       payment: payments?.[0],
     }
   }))

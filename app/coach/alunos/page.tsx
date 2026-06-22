@@ -13,7 +13,7 @@ type StudentRow = {
   goal?: string
   total_km?: number
   total_workouts?: number
-  week?: { label: string; done: number; total: number }
+  week?: { label: string; done: number; skipped?: number; pending?: number; total: number }
   payment?: { status: string; month: string }
 }
 
@@ -178,7 +178,8 @@ export default function CoachStudentsPage() {
                     </div>
                     <div className="student-card-grid">
                       <Info icon={<CalendarDays size={14} />} label="Semana" value={student.week?.label || 'Não publicada'} />
-                      <Info icon={<CheckCircle2 size={14} />} label="Treinos" value={student.week ? `${student.week.done}/${student.week.total}` : '0/0'} />
+                      <Info icon={<CheckCircle2 size={14} />} label="Concluidos" value={student.week ? `${student.week.done}/${student.week.total}` : '0/0'} />
+                      <Info icon={<X size={14} />} label="Nao realizados" value={`${student.week?.skipped || 0}`} />
                       <Info label="Km acumulados" value={`${student.total_km || 0} km`} />
                       <Info label="Pagamentos" value={student.payment?.status || 'sem registro'} />
                     </div>

@@ -15,6 +15,7 @@ export type Profile = {
   avatar_url?: string
   whatsapp?: string
   bio?: string
+  birth_date?: string
   created_at: string
 }
 
@@ -75,6 +76,8 @@ export type Workout = {
   actual_pace?: string
   feeling?: 'facil' | 'ok' | 'dificil' | 'muito_dificil'
   notes?: string
+  skip_reason?: string
+  result_images?: string[]
 }
 
 export type Payment = {

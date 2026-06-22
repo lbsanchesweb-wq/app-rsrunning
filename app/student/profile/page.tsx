@@ -11,6 +11,7 @@ export default function StudentProfilePage() {
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [name, setName] = useState('')
+  const [birthDate, setBirthDate] = useState('')
   const [goal, setGoal] = useState('')
   const [nextRace, setNextRace] = useState('')
   const [saved, setSaved] = useState(false)
@@ -28,7 +29,7 @@ export default function StudentProfilePage() {
       supabase.from('badges').select('badge_key').eq('student_id', user.id),
     ])
     setProfile(prof); setStudent(stud)
-    setName(prof?.name || ''); setGoal(stud?.goal || ''); setNextRace(stud?.next_race || '')
+    setName(prof?.name || ''); setBirthDate(prof?.birth_date || ''); setGoal(stud?.goal || ''); setNextRace(stud?.next_race || '')
     setBadges((b || []).map((x: any) => x.badge_key as BadgeKey))
   }
 
@@ -51,7 +52,7 @@ export default function StudentProfilePage() {
     if (!profile) return
     setSaving(true)
     await Promise.all([
-      supabase.from('profiles').update({ name }).eq('id', profile.id),
+      supabase.from('profiles').update({ name, birth_date: birthDate || null }).eq('id', profile.id),
       supabase.from('students').update({ goal, next_race: nextRace }).eq('id', profile.id),
     ])
     setSaving(false); setSaved(true)
@@ -113,6 +114,10 @@ export default function StudentProfilePage() {
             <div>
               <label style={{ fontSize:'12px',color:'var(--rs-muted)',marginBottom:'5px',display:'block' }}>Nome</label>
               <input value={name} onChange={e => setName(e.target.value)} placeholder="Seu nome" />
+            </div>
+            <div>
+              <label style={{ fontSize:'12px',color:'var(--rs-muted)',marginBottom:'5px',display:'block' }}>Data de nascimento</label>
+              <input type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)} />
             </div>
             <div>
               <label style={{ fontSize:'12px',color:'var(--rs-muted)',marginBottom:'5px',display:'block' }}>Objetivo</label>
