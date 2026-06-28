@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "next lint",
     "seed:initial": "node scripts/import-initial-rs-running.mjs",
-    "seed:staging": "node scripts/seed-staging.mjs"
+    "seed:staging": "node scripts/seed-staging.mjs",
+    "publish:week:staging": "node scripts/publish-week-staging.mjs",
+    "audit:duplicates:2026-06-22": "node scripts/audit-week-duplicates.mjs",
+    "cleanup:duplicates:2026-06-22": "node scripts/cleanup-week-duplicates.mjs",
+    "publish:week:2026-06-22": "node scripts/publish-week-2026-06-22.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
