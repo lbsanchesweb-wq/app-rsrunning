@@ -18,3 +18,4 @@ Thumbs.db
 supabase/.temp/
 .production-backup-*/
 tsconfig.tsbuildinfo
+.local-secrets/
