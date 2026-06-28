@@ -21,6 +21,7 @@ export default function StudentPage() {
   const [unread, setUnread] = useState(0)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [actionError, setActionError] = useState('')
   const [feeling, setFeeling] = useState('')
   const [actualKm, setActualKm] = useState('')
   const [notes, setNotes] = useState('')
@@ -78,6 +79,7 @@ export default function StudentPage() {
     setActualKm('')
     setNotes('')
     setResultFiles([])
+    setActionError('')
   }
 
   function closeAction() {
@@ -85,6 +87,7 @@ export default function StudentPage() {
     setActionMode(null)
     setResultFiles([])
     setNotes('')
+    setActionError('')
   }
 
   function onFilesChange(event: ChangeEvent<HTMLInputElement>) {
@@ -108,10 +111,11 @@ export default function StudentPage() {
   async function markDone() {
     if (!selectedWorkout || !profile) return
     setSaving(true)
+    setActionError('')
     try {
       const uploadedPaths = await uploadResultImages(selectedWorkout)
       const actualKmNumber = actualKm ? parseFloat(actualKm) : null
-      await supabase.from('workouts').update({
+      const { error: workoutError } = await supabase.from('workouts').update({
         status: 'done',
         done_at: new Date().toISOString(),
         feeling: feeling || null,
@@ -120,16 +124,20 @@ export default function StudentPage() {
         skip_reason: null,
         result_images: [...(selectedWorkout.result_images || []), ...uploadedPaths],
       }).eq('id', selectedWorkout.id)
+      if (workoutError) throw workoutError
 
       if (selectedWorkout.status !== 'done') {
-        await supabase.from('students').update({
+        const { error: studentError } = await supabase.from('students').update({
           total_workouts: (student?.total_workouts || 0) + 1,
           total_km: (student?.total_km || 0) + (actualKmNumber || selectedWorkout.planned_km || 0),
         }).eq('id', profile.id)
+        if (studentError) throw studentError
       }
 
       closeAction()
       await loadData()
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Nao foi possivel salvar o treino. Tente novamente.')
     } finally {
       setSaving(false)
     }
@@ -138,14 +146,18 @@ export default function StudentPage() {
   async function markSkipped() {
     if (!selectedWorkout) return
     setSaving(true)
+    setActionError('')
     try {
-      await supabase.from('workouts').update({
+      const { error } = await supabase.from('workouts').update({
         status: 'skipped',
         skip_reason: notes || null,
         notes: notes || null,
       }).eq('id', selectedWorkout.id)
+      if (error) throw error
       closeAction()
       await loadData()
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Nao foi possivel marcar como nao realizado.')
     } finally {
       setSaving(false)
     }
@@ -270,6 +282,8 @@ export default function StudentPage() {
               <label style={{ fontSize: '12px', color: 'var(--rs-muted)', marginBottom: '6px', display: 'block' }}>{actionMode === 'skip' ? 'Motivo (opcional)' : 'Observacao (opcional)'}</label>
               <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={actionMode === 'skip' ? 'Ex: dor, viagem, chuva forte, falta de tempo...' : 'Como foi o treino? Algo diferente?'} rows={2} style={{ resize: 'none' }} />
             </div>
+
+            {actionError && <div role="alert" style={{ marginBottom: '12px', padding: '10px', borderRadius: '10px', background: '#ff444414', border: '1px solid #ff444455', color: 'var(--rs-danger)', fontSize: '12px' }}>{actionError}</div>}
 
             <div style={{ display: 'flex', gap: '8px' }}>
               <button className="btn-ghost" onClick={closeAction} style={{ flex: 1 }}>Cancelar</button>

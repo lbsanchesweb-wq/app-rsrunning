@@ -43,6 +43,7 @@ export default function SemanaPage() {
   const [activityEffort, setActivityEffort] = useState('moderado')
   const [activityNotes, setActivityNotes] = useState('')
   const [activityFiles, setActivityFiles] = useState<File[]>([])
+  const [activityError, setActivityError] = useState('')
   const [saving, setSaving] = useState(false)
   const supabase = createClient()
 
@@ -147,8 +148,13 @@ export default function SemanaPage() {
       showNotice('Mova ou remova as atividades antes de definir descanso.')
       return
     }
-    if (plan?.is_rest) await supabase.from('week_day_plans').delete().eq('id', plan.id)
-    else await supabase.from('week_day_plans').upsert({ week_id: week.id, student_id: week.student_id, plan_date: date, is_rest: true }, { onConflict: 'week_id,plan_date' })
+    const { error } = plan?.is_rest
+      ? await supabase.from('week_day_plans').delete().eq('id', plan.id)
+      : await supabase.from('week_day_plans').upsert({ week_id: week.id, student_id: week.student_id, plan_date: date, is_rest: true }, { onConflict: 'week_id,plan_date' })
+    if (error) {
+      showNotice(error.message)
+      return
+    }
     await load()
   }
 
@@ -162,6 +168,7 @@ export default function SemanaPage() {
     setActivityEffort('moderado')
     setActivityNotes('')
     setActivityFiles([])
+    setActivityError('')
   }
 
   function openNewActivity(date: string) {
@@ -186,32 +193,43 @@ export default function SemanaPage() {
   async function saveActivity() {
     if (!week || !activityTitle.trim() || !activityDate) return
     setSaving(true)
-    const payload = {
-      week_id: week.id, student_id: week.student_id, activity_date: activityDate, activity_type: activityType,
-      title: activityTitle.trim(), duration_minutes: activityDuration ? Number(activityDuration) : null,
-      distance_km: activityDistance ? Number(activityDistance) : null, effort: activityEffort,
-      notes: activityNotes || null, display_order: editingActivity?.display_order || entriesForDate(activityDate).length + 1,
-    }
-    const query = editingActivity
-      ? supabase.from('athlete_activities').update(payload).eq('id', editingActivity.id)
-      : supabase.from('athlete_activities').insert(payload)
-    const { data, error } = await query.select().single()
-    if (error || !data) { showNotice(error?.message || 'Não foi possível salvar.'); setSaving(false); return }
+    setActivityError('')
+    try {
+      const payload = {
+        week_id: week.id, student_id: week.student_id, activity_date: activityDate, activity_type: activityType,
+        title: activityTitle.trim(), duration_minutes: activityDuration ? Number(activityDuration) : null,
+        distance_km: activityDistance ? Number(activityDistance) : null, effort: activityEffort,
+        notes: activityNotes || null, display_order: editingActivity?.display_order || entriesForDate(activityDate).length + 1,
+      }
+      const query = editingActivity
+        ? supabase.from('athlete_activities').update(payload).eq('id', editingActivity.id)
+        : supabase.from('athlete_activities').insert(payload)
+      const { data, error } = await query.select().single()
+      if (error || !data) throw error || new Error('Nao foi possivel salvar a atividade.')
 
-    const imagePaths = [...(editingActivity?.result_images || [])]
-    for (const [index, file] of activityFiles.entries()) {
-      const safeName = file.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '-')
-      const path = `${week.student_id}/${data.id}/${Date.now()}-${index}-${safeName}`
-      const { error: uploadError } = await supabase.storage.from('activity-results').upload(path, file)
-      if (!uploadError) imagePaths.push(path)
+      const imagePaths = [...(editingActivity?.result_images || [])]
+      for (const [index, file] of activityFiles.entries()) {
+        const safeName = file.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '-')
+        const path = `${week.student_id}/${data.id}/${Date.now()}-${index}-${safeName}`
+        const { error: uploadError } = await supabase.storage.from('activity-results').upload(path, file)
+        if (uploadError) throw uploadError
+        imagePaths.push(path)
+      }
+      if (imagePaths.length) {
+        const { error: imageError } = await supabase.from('athlete_activities').update({ result_images: imagePaths }).eq('id', data.id)
+        if (imageError) throw imageError
+      }
+      const { error: restError } = await supabase.from('week_day_plans').delete().eq('week_id', week.id).eq('plan_date', activityDate)
+      if (restError) throw restError
+      setActivityOpen(false)
+      resetActivityForm()
+      await load()
+      showNotice(editingActivity ? 'Atividade atualizada.' : 'Atividade registrada.')
+    } catch (error) {
+      setActivityError(error instanceof Error ? error.message : 'Nao foi possivel salvar a atividade.')
+    } finally {
+      setSaving(false)
     }
-    if (imagePaths.length) await supabase.from('athlete_activities').update({ result_images: imagePaths }).eq('id', data.id)
-    await supabase.from('week_day_plans').delete().eq('week_id', week.id).eq('plan_date', activityDate)
-    setActivityOpen(false)
-    resetActivityForm()
-    await load()
-    showNotice(editingActivity ? 'Atividade atualizada.' : 'Atividade registrada.')
-    setSaving(false)
   }
 
   async function deleteActivity(activity: AthleteActivity) {
@@ -288,6 +306,7 @@ export default function SemanaPage() {
           <select value={activityEffort} onChange={event => setActivityEffort(event.target.value)}><option value="leve">Esforço leve</option><option value="moderado">Esforço moderado</option><option value="forte">Esforço forte</option><option value="maximo">Esforço máximo</option></select>
           <textarea value={activityNotes} onChange={event => setActivityNotes(event.target.value)} placeholder="Observação (opcional)" rows={3} />
           <input type="file" accept="image/*" multiple onChange={(event:ChangeEvent<HTMLInputElement>) => setActivityFiles(Array.from(event.target.files || []).slice(0,4))} />
+          {activityError && <div role="alert" style={{ padding:'10px',borderRadius:'10px',background:'#ff444414',border:'1px solid #ff444455',color:'var(--rs-danger)',fontSize:'12px' }}>{activityError}</div>}
           <button className="btn-primary" onClick={saveActivity} disabled={saving || !activityTitle.trim()}>{saving ? 'Salvando...' : 'Salvar atividade'}</button>
         </div>
       </div></div>}
